@@ -173,6 +173,7 @@ const chartOptions = ref({
 
 // 定时器
 let dataTimer = null
+let isNavigating = false
 
 // 告警信息
 const alerts = ref([])
@@ -186,9 +187,13 @@ const startDataRefresh = () => {
   
   // 创建新的定时器,每30秒刷新一次数据
   dataTimer = setInterval(async () => {
-    if (selectedGreenhouse.value) {
-      await getRealTimeData()
-      await getHistoryData()
+    if (selectedGreenhouse.value && !isNavigating) {
+      try {
+        await getRealTimeData()
+        await getHistoryData()
+      } catch (error) {
+        console.error('定时刷新数据失败:', error)
+      }
     }
   }, 30000)
 }
@@ -471,13 +476,14 @@ watch(selectedGreenhouse, (newVal) => {
 
 // 组件挂载时初始化
 onMounted(() => {
+  isNavigating = false
   initGreenhouses()
 })
 
 // 组件卸载时清理
 onUnmounted(() => {
+  isNavigating = true
   stopDataRefresh()
-  window.removeEventListener('resize', handleResize)
   if (videoPlayer.value) {
     console.log('销毁视频播放器')
     videoPlayer.value.destroy()
@@ -545,48 +551,55 @@ document.head.insertAdjacentHTML('beforeend', styles)
 <style scoped>
 .dashboard-container {
   width: 100%;
-  height: 100vh;
-  padding: 1vw;
+  min-height: 100%;
+  padding: 1rem;
   box-sizing: border-box;
   background: #1a1a1a;
   color: #fff;
+  overflow-y: auto;
 }
 
 .content {
   display: grid;
-  grid-template-columns: 18vw 52vw 30vw;
-  gap: 1vw;
-  height: calc(100vh - 2vw);
+  grid-template-columns: minmax(300px, 20%) 1fr minmax(280px, 25%);
+  gap: 1rem;
+  min-height: calc(100vh - 8rem);
+  padding: 0;
 }
 
 .panel-item {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 0.3vw;
-  padding: 0.8vw;
-  margin-bottom: 0.5vw;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
   display: flex;
   flex-direction: column;
+  min-height: 200px;
 }
 
 .panel-item h3 {
   margin: 0;
-  padding: 0.8vw;
+  padding: 0.5rem;
   color: #36d1dc;
-  font-size: 1vw;
+  font-size: 1rem;
   font-weight: normal;
+  flex-shrink: 0;
 }
 
 .chart {
-  height: 25vh;
+  height: 200px;
+  min-height: 150px;
+  flex: 1;
 }
 
 .data-overview {
   display: flex;
   justify-content: space-around;
-  margin: 0.5vw 0;
-  padding: 0.5vw;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 0.3vw;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .data-item {
@@ -594,13 +607,13 @@ document.head.insertAdjacentHTML('beforeend', styles)
 }
 
 .value {
-  font-size: 1.5vw;
+  font-size: 1.5rem;
   color: #36d1dc;
-  margin-bottom: 0.3vw;
+  margin-bottom: 0.3rem;
 }
 
 .label {
-  font-size: 0.8vw;
+  font-size: 0.8rem;
   color: #999;
 }
 
@@ -635,18 +648,19 @@ document.head.insertAdjacentHTML('beforeend', styles)
 }
 
 .full-height {
-  height: calc(100% - 2vw);
+  height: 100%;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.8vw;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
 }
 
 .greenhouse-select {
-  width: 7vw;
+  width: 120px;
 }
 
 :deep(.greenhouse-select .el-input__wrapper) {
@@ -657,7 +671,7 @@ document.head.insertAdjacentHTML('beforeend', styles)
 
 :deep(.greenhouse-select .el-input__inner) {
   color: #fff;
-  font-size: 0.8vw;
+  font-size: 0.8rem;
 }
 
 :deep(.greenhouse-select .el-select__caret) {
@@ -665,35 +679,35 @@ document.head.insertAdjacentHTML('beforeend', styles)
 }
 
 .greenhouse-details {
-  margin-top: 0.5vw;
+  margin-top: 0.5rem;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.6vw;
+  gap: 0.5rem;
   overflow-y: auto;
-  max-height: calc(22vh - 10vw);
+  max-height: 300px;
 }
 
 .detail-item {
   background: rgba(255, 255, 255, 0.05);
-  padding: 0.6vw;
-  border-radius: 0.2vw;
+  padding: 0.5rem;
+  border-radius: 4px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 2.5vw;
+  min-height: 2rem;
 }
 
 .detail-label {
   color: #999;
-  font-size: 0.8vw;
-  margin-right: 1vw;
+  font-size: 0.8rem;
+  margin-right: 0.5rem;
 }
 
 .detail-value {
   color: #36d1dc;
-  font-size: 0.9vw;
+  font-size: 0.9rem;
   font-weight: 500;
-  min-width: 4vw;
+  min-width: 3rem;
   text-align: right;
 }
 
@@ -718,9 +732,9 @@ document.head.insertAdjacentHTML('beforeend', styles)
 /* 添加视频容器样式 */
 .video-container {
   width: 100%;
-  height: calc(100% - 3vw);
+  height: 400px;
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 0.3vw;
+  border-radius: 8px;
   overflow: hidden;
   position: relative;
   display: flex;
@@ -739,16 +753,17 @@ document.head.insertAdjacentHTML('beforeend', styles)
 }
 
 .placeholder-icon {
-  font-size: 3vw;
-  margin-bottom: 1vw;
+  font-size: 3rem;
+  margin-bottom: 1rem;
 }
 
 /* 视频内容样式 */
 .video-content {
   width: 100%;
   height: 100%;
+  object-fit: contain;
   position: relative;
-  display: flex;
+  display: block;
   justify-content: center;
   align-items: center;
 }
@@ -782,70 +797,72 @@ document.head.insertAdjacentHTML('beforeend', styles)
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
+  padding: 1rem;
+  height: 100vh;
+  max-height: 100%;
+  box-sizing: border-box;
+  overflow-y: hidden;
 }
 
 .charts-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.8vw;
-  padding: 0.8vw;
+  gap: 0.5rem;
+  padding: 0.5rem;
   overflow-y: auto;
-  height: calc(100% - 2.5vw);
+  max-height: 500px;
 }
 
 .chart-card {
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 0.3vw;
-  padding: 0.8vw;
+  border-radius: 8px;
+  padding: 0.5rem;
   display: flex;
   flex-direction: column;
-  height: 22vh;
-  min-height: 160px;
+  min-height: 200px;
+  height: 200px;
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5vw;
+  margin-bottom: 0.5rem;
   height: 30px;
+  /*flex-shrink: 0;*/
 }
 
 .chart-title {
   color: #36d1dc;
-  font-size: 0.8vw;
+  font-size: 0.8rem;
 }
 
 .chart-value {
   color: #fff;
-  font-size: 0.9vw;
+  font-size: 0.9rem;
   font-weight: 500;
 }
 
 .chart {
-  flex: 1;
+  height: calc(100% - 30px);
   min-height: 150px;
   width: 100%;
-  height: calc(100% - 30px);
 }
 
 /* 修改滚动条样式 */
 .charts-grid::-webkit-scrollbar {
-  width: 0.4vw;
+  width: 6px;
   display: none;
 }
 
 .charts-grid::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 0.2vw;
+  border-radius: 2px;
 }
 
 .charts-grid::-webkit-scrollbar-thumb {
   background: rgba(54, 209, 220, 0.3);
-  border-radius: 0.2vw;
+  border-radius: 2px;
 }
 
 .charts-grid::-webkit-scrollbar-thumb:hover {
@@ -853,59 +870,73 @@ document.head.insertAdjacentHTML('beforeend', styles)
 }
 
 .panel-item.charts-container h3 {
-  padding: 0.8vw;
+  padding: 0.5rem;
   margin: 0;
   background: rgba(0, 0, 0, 0.2);
-  border-top-left-radius: 0.3vw;
-  border-top-right-radius: 0.3vw;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  flex-shrink: 0;
 }
 
 /* 右侧面板专用样式 */
 .right-panel {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 0.3vw;
-  height: 100%;
-  overflow: hidden;
+  border-radius: 8px;
+  min-height: 500px;
   padding: 0;
 }
 
 .right-charts-container {
-  height: 100%;
+  min-height: 500px;
   display: flex;
   flex-direction: column;
-  border-radius: 0.3vw;
+  border-radius: 8px;
 }
 
 .right-charts-container h3 {
   margin: 0;
-  padding: 1vw;
+  padding: 0.5rem;
   color: #36d1dc;
-  font-size: 1.1vw;
+  font-size: 1rem;
   background: rgba(0, 0, 0, 0.2);
-  border-top-left-radius: 0.3vw;
-  border-top-right-radius: 0.3vw;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  flex-shrink: 0;
 }
 
 /* 添加媒体查询以适应不同屏幕 */
-@media screen and (max-height: 900px) {
-  .chart-card {
-    height: calc((100vh - 35vw) / 3);
-    min-height: 160px;
-  }
-  
-  .chart {
-    min-height: 130px;
+@media screen and (max-width: 1200px) {
+  .content {
+    grid-template-columns: minmax(250px, 18%) 1fr minmax(250px, 22%);
   }
 }
 
-@media screen and (max-height: 768px) {
+@media screen and (max-width: 768px) {
+  .content {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 0.5rem;
+  }
+  
   .chart-card {
-    height: calc((100vh - 30vw) / 3);
-    min-height: 140px;
+    min-height: 150px;
+    height: 150px;
   }
   
   .chart {
-    min-height: 110px;
+    min-height: 120px;
+  }
+  
+  .video-container {
+    height: 300px;
+  }
+  
+  .center-panel .panel-item {
+    min-height: 350px;
+  }
+  
+  .right-panel {
+    min-height: 400px;
   }
 }
 
@@ -943,38 +974,39 @@ document.head.insertAdjacentHTML('beforeend', styles)
 /* 调整中间面板样式 */
 .center-panel {
   flex: 1;
-  height: 100%;
+  min-width: 0;
 }
 
 .center-panel .panel-item {
-  padding: 1vw;
+  padding: 1rem;
   margin: 0;
-  height: 100%;
+  min-height: 500px;
   display: flex;
   flex-direction: column;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 0.3vw;
+  border-radius: 8px;
 }
 
 .center-panel .panel-item h3 {
-  padding: 0 0 0.8vw 0;
-  font-size: 1.2vw;
+  padding: 0 0 0.5rem 0;
+  font-size: 1rem;
   margin: 0;
+  flex-shrink: 0;
 }
 
 /* 视频控制按钮样式优化 */
 :deep(.video-toolbox) {
   background: rgba(0, 0, 0, 0.5);
-  border-radius: 0.3vw;
-  padding: 0.5vw;
+  border-radius: 4px;
+  padding: 0.5rem;
 }
 
 :deep(.video-toolbox button) {
   background: rgba(255, 255, 255, 0.1);
   border: none;
   color: #fff;
-  border-radius: 0.2vw;
-  margin: 0 0.2vw;
+  border-radius: 2px;
+  margin: 0 0.2rem;
 }
 
 :deep(.video-toolbox button:hover) {
@@ -983,13 +1015,13 @@ document.head.insertAdjacentHTML('beforeend', styles)
 
 /* 调整图表卡片在右侧的显示 */
 .right-panel .chart-card {
-  height: 28vh;
-  min-height: 200px;
+  min-height: 180px;
+  height: 180px;
 }
 
 /* 调整右侧图表间距 */
 .right-panel .charts-grid {
-  gap: 1vw;
-  padding: 1vw;
+  gap: 0.5rem;
+  padding: 0.5rem;
 }
 </style> 

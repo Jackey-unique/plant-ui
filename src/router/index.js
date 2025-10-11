@@ -40,9 +40,20 @@ const router = createRouter({
   routes
 })
 
+// 路由防抖处理
+let navigationTimer = null
+
 // 无登录模式：不做任何鉴权拦截
 router.beforeEach((to, from, next) => {
-  next()
+  // 清除之前的导航定时器
+  if (navigationTimer) {
+    clearTimeout(navigationTimer)
+  }
+  
+  // 设置防抖延迟
+  navigationTimer = setTimeout(() => {
+    next()
+  }, 50) // 50ms防抖延迟
 })
 
 export default router

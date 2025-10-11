@@ -2,7 +2,7 @@
   <el-container class="layout-container">
     <!-- 顶部栏 -->
     <el-header class="header">
-      <div class="logo">智慧大棚监管系统</div>
+      <div class="logo">青州农业大棚管理系统</div>
       <div class="header-right">
         <el-dropdown @command="handleCommand">
           <span class="user-info">
@@ -30,6 +30,7 @@
           background-color="#001529"
           text-color="rgba(255, 255, 255, 0.65)"
           active-text-color="#fff"
+          @select="handleMenuSelect"
         >
           <el-menu-item index="/dashboard">
             <el-icon><Monitor /></el-icon>
@@ -63,7 +64,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Monitor, House, User, CaretBottom } from '@element-plus/icons-vue'
@@ -74,6 +75,7 @@ const route = useRoute()
 const activeMenu = ref(route.path)
 const userInfo = ref({})
 const isCollapse = ref(false)
+let navigationLock = false
 
 // 获取用户信息
 const getUserInfo = async () => {
@@ -85,15 +87,35 @@ const getUserInfo = async () => {
   }
 }
 
+// 处理菜单选择
+const handleMenuSelect = (index) => {
+  if (!navigationLock) {
+    navigationLock = true
+    activeMenu.value = index
+    setTimeout(() => {
+      navigationLock = false
+    }, 300)
+  }
+}
+
 // 处理下拉菜单命令
 const handleCommand = (command) => {
-  if (command === 'profile') {
-    router.push('/profile')
+  if (command === 'profile' && !navigationLock) {
+    navigationLock = true
+    router.push('/profile').finally(() => {
+      setTimeout(() => {
+        navigationLock = false
+      }, 300)
+    })
   }
 }
 
 onMounted(() => {
   getUserInfo()
+})
+
+onUnmounted(() => {
+  navigationLock = false
 })
 </script>
 
@@ -122,36 +144,30 @@ onMounted(() => {
 
 .main-container {
   padding-top: 6vh;
-  height: 94vh;
+  min-height: 94vh;
   display: flex;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  width: 100%;
 }
 
 .sidebar {
-  height: 94vh;
+  min-height: 94vh;
   background-color: #001529;
-  position: fixed;
-  left: 0;
-  top: 6vh;
+  position: relative;
   width: 15vw !important;
-  z-index: 999;
+  flex-shrink: 0;
 }
 
 .sidebar-menu {
   border-right: none;
-  height: 100%;
+  min-height: 100%;
 }
 
 .main-content {
   padding: 0 !important;
-  margin-left: 15vw;
   background-color: #fff;
   min-height: 94vh;
-  width: 85vw;
+  flex: 1;
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;
@@ -196,11 +212,6 @@ onMounted(() => {
 @media screen and (max-width: 768px) {
   .sidebar {
     width: 5vw !important;
-  }
-  
-  .main-content {
-    margin-left: 5vw;
-    width: 95vw;
   }
 }
 </style> 
