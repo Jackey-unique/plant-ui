@@ -1,4 +1,3 @@
-我来帮你写一个完整的 README.md 文件：
 
 ```markdown:README.md
 # 智慧大棚监管系统 (Smart Greenhouse Monitoring System)
